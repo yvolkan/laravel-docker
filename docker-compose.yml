@@ -1,0 +1,55 @@
+# For more information: https://laravel.com/docs/sail
+version: '3'
+services:
+    laravel-app:
+        build:
+            context: .
+            dockerfile: docker/php/Dockerfile
+        image: digitalocean.com/php
+        container_name: '${APP_NAME}-app'
+        restart: unless-stopped
+        tty: true
+        environment:
+            SERVICE_NAME: app
+            SERVICE_TAGS: dev
+        working_dir: /var/www
+        volumes:
+            - ./:/var/www
+            - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+        networks:
+            - laravel
+    laravel-server:
+        image: nginx:alpine
+        container_name: '${APP_NAME}-server'
+        restart: unless-stopped
+        tty: true
+        ports:
+            - "80:80"
+            - "443:443"
+        volumes:
+            - ./:/var/www
+            - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
+        networks:
+            - laravel
+
+    laravel-mysql:
+        container_name: '${APP_NAME}-mysql'
+        image: 'mysql:8.0'
+        ports:
+            - '3306:3306'
+        environment:
+            MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+            MYSQL_DATABASE: '${DB_DATABASE}'
+            MYSQL_USER: '${DB_USERNAME}'
+            MYSQL_PASSWORD: '${DB_PASSWORD}'
+            MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+        volumes:
+            - 'laravelmysql:/var/lib/mysql'
+        networks:
+            - laravel
+networks:
+    laravel:
+        driver: bridge
+volumes:
+    laravelmysql:
+        driver: local
